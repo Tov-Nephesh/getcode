@@ -1,0 +1,63 @@
+import os
+import numpy as np
+import pandas as pd
+
+# to make this notebook's output stable across runs
+np.random.seed(7)
+#%% Data Prep
+# Load Packages
+from numpy import mean
+from numpy import std
+from sklearn.datasets import make_regression
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import RepeatedKFold
+from sklearn.ensemble import RandomForestRegressor
+
+# Define Dataset
+# Dataset has already been Normalized and Cleaned
+from pandas import read_csv
+data = read_csv('FUDS_01.csv', header=0, index_col=0)
+data = np.asarray(data)
+X = data
+y = data[:,2]
+
+feature_list = ['Current','Voltage','SOC','Temp']
+
+train_features, test_features, train_labels, test_labels = train_test_split(X, y, test_size = 0.25, random_state = 7)
+# summarize the dataset
+print(X.shape, y.shape)
+#%% RF for Regression Prediction
+# define the model
+model = RandomForestRegressor(n_estimators=10, max_depth = 3)
+# fit the model on the training dataset
+model.fit(train_features, train_labels)
+# make a single prediction
+predictions = model.predict(test_features)
+# Evaluate
+# Calculate the absolute errors
+errors = abs(predictions - test_labels)
+# Print out the mean absolute error (mae)
+print('Mean Absolute Error:', round(np.mean(errors), 2), 'degrees.')
+#%% Visualize the Tree
+from sklearn.tree import export_graphviz
+import pydot
+# Extract the small tree
+tree_small = model.estimators_[3]
+# Save the tree as a png image
+export_graphviz(tree_small, out_file = 'small_tree.dot', feature_names = 
+                feature_list, rounded = True, precision = 1)
+(graph, ) = pydot.graph_from_dot_file('small_tree.dot')
+graph.write_png('small_tree.png')
+
+#%% Importance Values
+importances = list(model.feature_importances_)
+
+# List of tuples with variable and importance
+feature_importances = [(feature, round(importance, 2)) for feature, 
+                       importance in zip(feature_list, importances)]
+# Sort the feature importances by most important first
+feature_importances = sorted(feature_importances, key = lambda x: x[1], 
+                             reverse = True)
+# Print out the feature and importances 
+[print('Variable: {:20} Importance: {}'.format(*pair)) for pair in 
+ feature_importances]
